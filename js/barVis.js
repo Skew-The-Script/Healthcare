@@ -1,3 +1,6 @@
+let xbar = "x\u0305";
+let thirdGraphMult = 4;
+
 class BarVis {
 
     constructor(parentElement, data1, mean, stdev, distType) {
@@ -62,7 +65,7 @@ class BarVis {
     wrangleData() {
         let vis = this;
 
-        vis.numBars = 24;
+        vis.numBars = 6*numBarsPerUnit;
 
         // first chart: population data
         vis.displayData1 = [];
@@ -74,7 +77,7 @@ class BarVis {
         for (let j = 0; j < vis.data1.length; j++){
             let _val = vis.data1[j];
             if (_val >= 0 && _val < vis.numBars){
-                vis.displayData1[_val] += 1;
+                vis.displayData1[Math.round(_val)] += 1;
             }
         }
 
@@ -91,7 +94,7 @@ class BarVis {
             let _val = vis.samples[j];
             if (_val >= 0 && _val < vis.numBars){
                 vis.displayData2.push(_val);
-                vis.displayData2Freq[_val]++;
+                vis.displayData2Freq[Math.round(_val)]++;
             }
         }
 
@@ -100,15 +103,15 @@ class BarVis {
         vis.displayData3 = [];
         vis.displayData3Freq = [];
 
-        for (let i = 0; i < vis.numBars*2; i++){
+        for (let i = 0; i < vis.numBars*thirdGraphMult; i++){
             vis.displayData3Freq.push(0);
         }
 
         for (let j = 0; j < vis.sampleMeans.length; j++){
             let _val = vis.sampleMeans[j];
-            if (_val >= 0 && _val < vis.numBars*2){
+            if (_val >= 0 && _val < vis.numBars*thirdGraphMult){
                 vis.displayData3.push(_val);
-                vis.displayData3Freq[_val]++;
+                vis.displayData3Freq[Math.round(_val)]++;
             }
         }
 
@@ -125,6 +128,32 @@ class BarVis {
         vis.updateNormalCurve();
         vis.updateSecondChartTitle();
         vis.updateThirdChartTitle();
+    }
+
+    updateSecondChartTitle(){
+        let vis = this;
+        vis.svg.select("#sampleDataLabel").remove();
+        vis.svg.append("text")
+            .style("font-size", "15px")
+            .attr("id", "sampleDataLabel")
+            .attr("y", -5)
+            .attr("x", vis.width / 3)
+            .attr("dy", "1.1em")
+            .attr("transform", "translate(0,"+vis.height/3+")")
+            .text(() => {
+                if (vis.newVis){
+                    return "";
+                }
+                else if (vis.recentSample){
+                    return "Most Recent Sample ("+xbar+" = " + vis.recentSampleMean/numBarsPerUnit + ")";
+                }
+                else if (!vis.running){
+                    return "Sample Data ("+xbar+" = " + vis.recentSampleMean/numBarsPerUnit + ")";
+                }
+                else{
+                    return "Sample Data";
+                }
+            });
     }
 
     updateThirdChartTitle(){
@@ -147,32 +176,6 @@ class BarVis {
             });
     }
 
-    updateSecondChartTitle(){
-        let vis = this;
-        vis.svg.select("#sampleDataLabel").remove();
-        vis.svg.append("text")
-            .style("font-size", "15px")
-            .attr("id", "sampleDataLabel")
-            .attr("y", -5)
-            .attr("x", vis.width / 3)
-            .attr("dy", "1.1em")
-            .attr("transform", "translate(0,"+vis.height/3+")")
-            .text(() => {
-                if (vis.newVis){
-                    return "";
-                }
-                else if (vis.recentSample){
-                    return "Most Recent Sample (x̄ = " + vis.recentSampleMean/4 + ")";
-                }
-                else if (!vis.running){
-                    return "Sample Data (x̄ = " + vis.recentSampleMean/4 + ")";
-                }
-                else{
-                    return "Sample Data";
-                }
-            });
-    }
-
     updateAxes(){
         let vis = this;
 
@@ -182,11 +185,11 @@ class BarVis {
         vis.svg.select("#barGraphYAxis3").remove();
 
         vis.x = d3.scaleLinear()
-            .domain([0, 24])
+            .domain([0, vis.numBars])
             .range([30, vis.width - 30]);
 
         vis.xDouble = d3.scaleLinear()
-            .domain([0, 48])
+            .domain([0, thirdGraphMult*vis.numBars])
             .range([30, vis.width - 30]);
 
         vis.y1 = d3.scaleLinear()
@@ -204,14 +207,14 @@ class BarVis {
         vis.x_axis = d3.axisBottom()
             .scale(vis.x)
             .ticks(6)
-            .tickValues([0, 4, 8, 12, 16, 20, 24])
-            .tickFormat(function(d, i) {return d/4;});
+            .tickValues([0, numBarsPerUnit, 2*numBarsPerUnit, 3*numBarsPerUnit, 4*numBarsPerUnit, 5*numBarsPerUnit, 6*numBarsPerUnit])
+            .tickFormat(function(d, i) {return d/numBarsPerUnit;});
 
         vis.x_axisDouble = d3.axisBottom()
             .scale(vis.xDouble)
             .ticks(6)
-            .tickValues([0, 8, 16, 24, 32, 40, 48])
-            .tickFormat(function(d, i) {return d/8;});
+            .tickValues([0, thirdGraphMult*numBarsPerUnit, 2*thirdGraphMult*numBarsPerUnit, 3*thirdGraphMult*numBarsPerUnit, 4*thirdGraphMult*numBarsPerUnit, 5*thirdGraphMult*numBarsPerUnit, 6*thirdGraphMult*numBarsPerUnit])
+            .tickFormat(function(d, i) {return d/(numBarsPerUnit*thirdGraphMult);});
 
         vis.y_axis3 = d3.axisLeft()
             .scale(vis.y3)
@@ -268,112 +271,242 @@ class BarVis {
     }
 
     updateSampleGraph(){
+
         let vis = this;
-        var xsData = vis.svg.selectAll(".sampleData")
+
+        // console.log("DATA!!!!!!!!");
+        // console.log(vis.displayData2);
+
+        var xsData = vis.svg.selectAll(".sampleDataAll")
             .data(vis.displayData2);
 
-        let dataCounts = {};
-        for (let k = 0; k < 24; k++){
-            dataCounts[k] = 0;
+        var xsDataOld = vis.svg.selectAll(".sampleDataOld")
+            .data(vis.displayData2.slice(0, -1));
+
+        let dataCounts = [];
+        for (let k = 0; k < vis.numBars; k++){
+            dataCounts.push(0);
         }
-        xsData.enter().append("text")
-            .attr("class", "sampleData")
-            .merge(xsData)
-            .attr("x", function(d, i){
-                let _x = vis.x(d) - 3.85;
-                return _x;
-            })
-            .transition()
-            .attr("y", function(d, i){
-                dataCounts[d]++;
-                return vis.y2(dataCounts[d]-1);
-            })
-            .text("x")
-        ;
-        xsData.exit().remove();
+
+        if (myNumSamples == 1 && vis.nSamplesSoFar >= 1){
+            // console.log("at least one sample val");
+
+            if (vis.nSamplesSoFar == 1 && vis.readyToPushNewSampleValue){
+                // console.log("putting down the first value");
+                xsData.enter().append("text")
+                    .attr("class", "sampleDataAll")
+                    .merge(xsData)
+                    .attr("x", function(d, i){
+                        let _x = vis.x(d) - 3.85;
+                        return _x;
+                    })
+                    .attr("y", function(d, i){
+                        return vis.height/3;
+                    })
+                    .transition()
+                    .attr("y", function(d, i){
+                        dataCounts[d]++;
+                        return vis.y2(dataCounts[d]-1);
+                    })
+                    .text("x")
+                ;
+                xsData.exit().remove();
+            }
+            else{
+
+                // console.log("putting the old data down");
+                xsDataOld.enter().append("text")
+                    .attr("class", "sampleDataOld")
+                    .merge(xsDataOld)
+                    .attr("x", function(d, i){
+                        let _x = vis.x(d) - 3.85;
+                        return _x;
+                    })
+                    .attr("y", function(d, i){
+                        dataCounts[d]++;
+                        return vis.y2(dataCounts[d]-1);
+                    })
+                    .text("x")
+                ;
+                xsDataOld.exit().remove();
+
+
+                // console.log("1: " + dataCounts);
+
+                if (vis.readyToPushNewSampleValue){
+                    // console.log("new value falling now");
+                    var xsDataNew = vis.svg.selectAll(".sampleDataNew")
+                        .data([vis.displayData2[vis.displayData2.length - 1]]);
+
+                    xsDataNew.enter().append("text")
+                        .attr("class", "sampleDataNew")
+                        .merge(xsDataNew)
+                        .attr("x", function(d, i){
+                            let _x = vis.x(d) - 3.85;
+                            return _x;
+                        })
+                        .attr("y", function(d, i){
+                            return vis.height/3;
+                        })
+                        .transition()
+                        .attr("y", function(d, i){
+                            dataCounts[d]++;
+                            return vis.y2(dataCounts[d]-1);
+                        })
+                        .text("x")
+                    ;
+                    xsDataNew.exit().remove();
+
+                    // console.log("2: " + dataCounts);
+                }
+            }
+        }
+        else if (vis.resettingSampleGraph){
+            // console.log("!!!! RESET DATA!!");
+
+            // console.log("reset counts: " + dataCounts);
+            // console.log("reset data: " + vis.displayData2);
+            vis.svg.selectAll(".sampleDataAll").remove();
+            vis.svg.selectAll(".sampleDataOld").remove();
+            vis.svg.selectAll(".sampleDataNew").remove();
+        }
+        else if (vis.nSamplesSoFar >= 1){
+            // console.log("at least one sample val, but why did i reach here");
+            xsData.enter().append("text")
+                .attr("class", "sampleDataAll")
+                .merge(xsData)
+                .attr("x", function(d, i){
+                    let _x = vis.x(d) - 3.85;
+                    return _x;
+                })
+                .attr("y", function(d, i){
+                    dataCounts[d]++;
+                    return vis.y2(dataCounts[d]-1);
+                })
+                .text("x")
+            ;
+            xsData.exit().remove();
+        }
 
     }
 
     updateSampleMeanGraph(){
+
         let vis = this;
-        var xsMeans = vis.svg.selectAll(".sampleMean")
+        // console.log("SAMPLE MEAN!!!!!!!!!!");
+        // console.log(vis.displayData3);
+
+        var xsMeans = vis.svg.selectAll(".sampleMeanAll")
             .data(vis.displayData3);
 
-        let meanCounts = {};
-        for (let k = 0; k < 48; k++){
-            meanCounts[k] = 0;
+        var xsMeansOld = vis.svg.selectAll(".sampleMeanOld")
+            .data(vis.displayData3.slice(0, -1));
+
+        let meanCounts = [];
+        for (let k = 0; k < thirdGraphMult*vis.numBars; k++){
+            meanCounts.push(0);
         }
-        xsMeans.enter().append("text")
-            .attr("class", "sampleMean")
-            .merge(xsMeans)
-            .attr("x", function(d, i){
-                let _x = vis.xDouble(d) - 3.85/Math.sqrt(Math.sqrt(d3.max(vis.displayData3Freq)));
-                return _x;
-            })
-            .transition()
-            .attr("y", function(d, i){
-                meanCounts[d]++;
-                return vis.y3(meanCounts[d]-1);
-            })
-            .text("x̄")
-            .style("font-size", Math.round(16/Math.sqrt(Math.sqrt(d3.max(vis.displayData3Freq))))+"px")
-        ;
-        xsMeans.exit().remove();
-    }
 
-    addBarText(){
-        let vis = this;
+        if (myNumSamples == 1 && vis.nSampleMeansSoFar >= 1){
+            if (vis.nSampleMeansSoFar == 1 && vis.readyToPushNewSampleMean){
+                xsMeans.enter().append("text")
+                    .attr("class", "sampleMeanAll")
+                    .merge(xsMeans)
+                    .attr("x", function(d, i){
+                        let _x = vis.xDouble(d) - 3.85/Math.pow(d3.max(vis.displayData3Freq), 0.125);
+                        return _x;
+                    })
+                    .attr("y", function(d, i){
+                        return 2*vis.height/3;
+                    })
+                    .transition()
+                    .attr("y", function(d, i){
+                        meanCounts[d]++;
+                        return vis.y3(meanCounts[d]-1);
+                    })
+                    .text(xbar)
+                    .style("font-size", Math.round(16/Math.pow(d3.max(vis.displayData3Freq), 0.125))+"px")
+                ;
+                xsMeans.exit().remove();
+            }
+            else{
+                xsMeansOld.enter().append("text")
+                    .attr("class", "sampleMeanOld")
+                    .merge(xsMeansOld)
+                    .attr("x", function(d, i){
+                        let _x = vis.xDouble(d) - 3.85/Math.pow(d3.max(vis.displayData3Freq), 0.125);
+                        return _x;
+                    })
+                    .attr("y", function(d, i){
+                        // console.log("OLD: " + d + " : " + i);
+                        meanCounts[d]++;
+                        return vis.y3(meanCounts[d]-1);
+                    })
+                    .text(xbar)
+                    .style("font-size", Math.round(16/Math.pow(d3.max(vis.displayData3Freq), 0.125))+"px")
+                ;
+                xsMeansOld.exit().remove();
 
-        var barValues1 = vis.svg.selectAll(".bar-value1")
-            .data(vis.displayData1);
+                // console.log("1: " + meanCounts);
 
-        barValues1.enter().append("text")
-            .attr("class", "bar-value1")
-            .merge(barValues1)
-            .transition()
-            .attr("x", function(d, i){return vis.x(i) + Math.sqrt(vis.width/vis.numBars1) + 3;})
-            .attr("y", function(d, i){return vis.y1(d) + 10;})
-            .attr("fill", "#006fff")
-            .text(function(d, i){
-                if (d > 0){ return d;}
-                else{ return "";}
-            });
+                if (vis.readyToPushNewSampleMean){
 
-        barValues1.exit().remove();
+                    var xsMeansNew = vis.svg.selectAll(".sampleMeanNew")
+                        .data([vis.displayData3[vis.displayData3.length - 1]]);
 
-        var barValues2 = vis.svg.selectAll(".bar-value2")
-            .data(vis.displayData2);
+                    xsMeansNew.enter().append("text")
+                        .attr("class", "sampleMeanNew")
+                        .merge(xsMeansNew)
+                        .attr("x", function(d, i){
+                            let _x = vis.xDouble(d) - 3.85/Math.pow(d3.max(vis.displayData3Freq), 0.125);
+                            return _x;
+                        })
+                        .attr("y", function(d, i){
+                            return 2*vis.height/3;
+                        })
+                        .transition()
+                        .attr("y", function(d, i){
+                            // console.log("NEW: " + d + " : " + i);
+                            meanCounts[d]++;
+                            return vis.y3(meanCounts[d]-1);
+                        })
+                        .text(xbar)
+                        .style("font-size", Math.round(16/Math.pow(d3.max(vis.displayData3Freq), 0.125))+"px")
+                    ;
+                    xsMeansNew.exit().remove();
 
-        barValues2.enter().append("text")
-            .attr("class", "bar-value2")
-            .merge(barValues2)
-            .transition()
-            .attr("x", function(d, i){return vis.x(i) + Math.sqrt(vis.width/vis.numBars2) + 3;})
-            .attr("y", function(d, i){return vis.y2(d) + 10;})
-            .attr("fill", "#006fff")
-            .text(function(d, i){
-                if (d > 0){ return d;}
-                else{ return "";}
-            });
+                    // console.log("2: " + meanCounts);
 
-        barValues2.exit().remove();
+                }
 
-        var barValues3 = vis.svg.selectAll(".bar-value3")
-            .data(vis.displayData3);
+            }
 
-        barValues3.enter().append("text")
-            .attr("class", "bar-value3")
-            .merge(barValues3)
-            .transition()
-            .attr("x", function(d, i){return vis.x(i) + Math.sqrt(vis.width/vis.numBars3) + 3;})
-            .attr("y", function(d, i){return vis.y3(d) + 10;})
-            .attr("fill", "#006fff")
-            .text(function(d, i){
-                if (d > 0){ return d;}
-                else{ return "";}
-            });
+        }
+        else if (vis.resettingSampleMeanGraph){
+            // console.log("!!!!!RESET MEAN!!!!!!!");
+            vis.svg.selectAll(".sampleMeanAll").remove();
+            vis.svg.selectAll(".sampleMeanOld").remove();
+            vis.svg.selectAll(".sampleMeanNew").remove();
+        }
+        else if (vis.nSampleMeansSoFar >= 1){
+            xsMeans.enter().append("text")
+                .attr("class", "sampleMeanAll")
+                .merge(xsMeans)
+                .attr("x", function(d, i){
+                    let _x = vis.xDouble(d) - 3.85/Math.pow(d3.max(vis.displayData3Freq), 0.125);
+                    return _x;
+                })
+                .attr("y", function(d, i){
+                    meanCounts[d]++;
+                    return vis.y3(meanCounts[d]-1);
+                })
+                .text(xbar)
+                .style("font-size", Math.round(16/Math.pow(d3.max(vis.displayData3Freq), 0.125))+"px")
+            ;
+            xsMeans.exit().remove();
+        }
 
-        barValues3.exit().remove();
+
     }
 
     resetSampleGraph(){
@@ -382,7 +515,9 @@ class BarVis {
         vis.recentSample = false;
         vis.nSamplesSoFar = 0;
         vis.samples = [];
+        vis.resettingSampleGraph = true;
         vis.wrangleData();
+        vis.resettingSampleGraph = false;
     }
 
     resetSampleMeanGraph(){
@@ -391,7 +526,9 @@ class BarVis {
         vis.nSampleMeansSoFar = 0;
         vis.sampleMeans = [];
         vis.showNormalCurve = false;
+        vis.resettingSampleMeanGraph = true;
         vis.wrangleData();
+        vis.resettingSampleMeanGraph = false;
     }
 
     addSample(sampleNum){
@@ -400,7 +537,9 @@ class BarVis {
         vis.newVis = false;
         vis.samples.push(sampleNum);
         vis.nSamplesSoFar++;
+        vis.readyToPushNewSampleValue = true;
         vis.wrangleData();
+        vis.readyToPushNewSampleValue = false;
     }
 
     addManySamples(samples){
@@ -422,11 +561,13 @@ class BarVis {
         for (let i = 0; i < samples.length; i++){
             total += samples[i];
         }
-        let _mean = Math.round(2*total / samples.length)/2;
+        let _mean = Math.round(thirdGraphMult*total / samples.length)/thirdGraphMult;
         vis.recentSampleMean = _mean;
-        vis.sampleMeans.push(2*_mean);
+        vis.sampleMeans.push(thirdGraphMult*_mean);
         vis.nSampleMeansSoFar++;
+        vis.readyToPushNewSampleMean = true;
         vis.wrangleData();
+        vis.readyToPushNewSampleMean = false;
     }
 
     updateParams(data1, mean, stdev, distType){
@@ -441,14 +582,13 @@ class BarVis {
         vis.nSamplesSoFar = 0;
         vis.nSampleMeansSoFar = 0;
         vis.addedSampleGroup = false;
-        // vis.wrangleData();
     }
 
     updateMeanLine(){
         let vis = this;
         vis.svg.select("#meanLine").remove();
         vis.svg.select("#meanLineText").remove();
-        let xval = vis.x(4*vis.mean);
+        let xval = vis.x(numBarsPerUnit*vis.mean);
 
         ////////////////////////////
         // place vertical line showing actual mean
@@ -458,17 +598,12 @@ class BarVis {
             .attr("y1", -5)
             .attr("x2", xval)
             .attr("y2", vis.height)
-            // .style("stroke-width", 1.5)
-            // .style("stroke", "#25fc5a")
         vis.svg.append("text")
             .attr("id", "meanLineText")
             .attr("transform", "rotate(-90)")
             .attr("x", -120)
             .attr("y", xval-6)
             .text("True mean μ")
-            // .style("font-size", 12)
-            // .style("stroke-width", 0.5)
-            // .style("stroke", "#25fc5a")
         ////////////////////////////
     }
 
@@ -476,7 +611,7 @@ class BarVis {
         let vis = this;
         vis.svg.select("#compareLine").remove();
         vis.svg.select("#compareLineText").remove();
-        let xval = vis.x(4*myCompareNormalVal);
+        let xval = vis.x(numBarsPerUnit*myCompareNormalVal);
 
         ////////////////////////////
         // place vertical line showing compared value
@@ -497,6 +632,10 @@ class BarVis {
         ////////////////////////////
     }
 
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // NORMAL DISTRIBUTION FOR SAMPLE MEANS
+
     toggleNormalCurveVisible(){
         let vis = this;
         vis.showNormalCurve = !vis.showNormalCurve;
@@ -504,22 +643,22 @@ class BarVis {
     }
 
     normalLikelihoodPeak(){
-        let _stdev = myStdev/Math.sqrt(mySampleSize);
+        let _stdev = myStdev*numBarsPerUnit/Math.sqrt(mySampleSize);
         let res = (1/(Math.sqrt(2*Math.PI)*_stdev));
         return res;
     }
 
     normalLikelihoodFunction(x){
         let vis = this;
-        let _stdev = myStdev/Math.sqrt(mySampleSize);
-        let res = (1/(Math.sqrt(2*Math.PI)*_stdev))*Math.exp(-0.5*Math.pow((x - myMean*4)/_stdev, 2));
+        let _stdev = myStdev*numBarsPerUnit/Math.sqrt(mySampleSize);
+        let res = (1/(Math.sqrt(2*Math.PI)*_stdev))*Math.exp(-0.5*Math.pow((x - myMean*numBarsPerUnit)/_stdev, 2));
         return d3.max(vis.displayData3Freq) *res / vis.normalLikelihoodPeak();
     }
 
     normalCDF(x, compareType){
         // source: https://stackoverflow.com/questions/5259421/cumulative-distribution-function-in-javascript
-        let _stdev = myStdev/Math.sqrt(mySampleSize);
-        var z = (x*4-myMean*4)/Math.sqrt(2*_stdev*_stdev);
+        let _stdev = myStdev*numBarsPerUnit/Math.sqrt(mySampleSize);
+        var z = (x*numBarsPerUnit-myMean*numBarsPerUnit)/Math.sqrt(2*_stdev*_stdev);
         var t = 1/(1+0.3275911*Math.abs(z));
         var a1 =  0.254829592;
         var a2 = -0.284496736;
@@ -553,10 +692,10 @@ class BarVis {
             vis.normalCurveData1 = [];
             vis.normalCurveData2 = [];
             vis.normalCompareCutoff = null;
-            for (let i = 0; i < 2400; i++){
+            for (let i = 0; i < 100*vis.numBars; i++){
                 let _val = vis.normalLikelihoodFunction(i/100);
                 if (myCompareType == "greater than" || myCompareType == "greater equal than"){
-                    if (i/100 < myCompareNormalVal*4){
+                    if (i/100 < myCompareNormalVal*numBarsPerUnit){
                         vis.normalCurveData1.push(_val);
                     }
                     else{
@@ -567,7 +706,7 @@ class BarVis {
                     }
                 }
                 else if (myCompareType == "less than" || myCompareType == "less equal than"){
-                    if (i/100 < myCompareNormalVal*4){
+                    if (i/100 < myCompareNormalVal*numBarsPerUnit){
                         vis.normalCurveData2.push(_val);
                     }
                     else{
@@ -623,28 +762,30 @@ class BarVis {
         let res = 0;
         for (let i = 0; i < vis.sampleMeans.length; i++){
             if (compareType=="greater than"){
-                if (vis.sampleMeans[i] > compareVal*8){
+                if (vis.sampleMeans[i] > compareVal*numBarsPerUnit*thirdGraphMult){
                     res++;
                 }
             }
             else if (compareType=="greater equal than"){
-                if (vis.sampleMeans[i] >= compareVal*8){
+                if (vis.sampleMeans[i] >= compareVal*numBarsPerUnit*thirdGraphMult){
                     res++;
                 }
             }
             else if (compareType=="less than"){
-                if (vis.sampleMeans[i] < compareVal*8){
+                if (vis.sampleMeans[i] < compareVal*numBarsPerUnit*thirdGraphMult){
                     res++;
                 }
             }
             else if (compareType=="less equal than"){
-                if (vis.sampleMeans[i] <= compareVal*8){
+                if (vis.sampleMeans[i] <= compareVal*numBarsPerUnit*thirdGraphMult){
                     res++;
                 }
             }
         }
         return res;
     }
+    ////////////////////////////////////////////////////////////////////////////////
 
 }
+
 

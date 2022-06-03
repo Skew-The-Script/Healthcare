@@ -1,12 +1,14 @@
 
 let myMean = 3;
-let myStdev = 2;
+let myStdev = 1;
 let myDistType = 'normal';
 let mySampleSize = 2;
+let myNumSamples;
 let myGenDataMeanVal;
+let myGenDataStDev;
 let myCompareNormalVal = 3;
 let myCompareType = "greater than";
-
+let numBarsPerUnit = 4;
 
 let data1;
 
@@ -19,17 +21,22 @@ let skewMap = {
     'right skew' : 4
 };
 
+let _testCount = 0;
+
 //////////////////////////////////////////////////////////////////
 // access html elements
 
 // numerical inputs
-let distMeanInput = document.getElementById("nDays");
+// let distMeanInput = document.getElementById("nDays");
 let distStdevInput = document.getElementById("stdevDays");
 let compareInput = document.getElementById("compareTo");
 
+// distMeanInput.step = 1/numBarsPerUnit;
+compareInput.step = 1/(numBarsPerUnit*thirdGraphMult);
+
 // text elements (change the text depending on the simulation run)
-let normalParams2 = null;
-let normalParams3 = null;
+let normalParams2 = document.getElementById("normalParams2");
+let normalParams3 = document.getElementById("normalParams3");
 let normalParamsDiv1 = document.getElementById("normalParamsDiv1");
 let normalParamsDiv2 = document.getElementById("normalParamsDiv2");
 let normalParamsDiv3 = document.getElementById("normalParamsDiv3");
@@ -49,24 +56,56 @@ let compareResults = document.getElementById("compareResults");
 // initialize source distribution data
 
 function genData(){
+    console.log("!!!! gen data !!!!");
+    _testCount = 0;
     let res = [];
     let temp = [];
-    let generatedDataSampleSize = 10000;
+    let generatedDataSampleSize = 100000;
     let val = 0;
     let total = 0;
 
     // generate 10000 random samples
-    // multiply the mean value by 4 because our
     for (let i = 0; i < generatedDataSampleSize; i++){
-        val = randomSkewNormal(Math.random, myMean*4, myStdev, skewMap[myDistType]);
+        val = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
         total += val;
         temp.push(val);
     }
-    myGenDataMeanVal = Math.round(total/generatedDataSampleSize);
+
+    // myGenDataMeanVal = Math.round(total/generatedDataSampleSize);
+    myGenDataMeanVal = total/generatedDataSampleSize;
+    console.log("mean: " + myGenDataMeanVal);
+
+    let _totalDistFromMean = 0;
     for (let i = 0; i < generatedDataSampleSize; i++){
         val = temp[i];
-        res.push(val - myGenDataMeanVal + myMean*4);
+        _totalDistFromMean += Math.pow(val - myGenDataMeanVal, 2);
     }
+
+    myGenDataStDev = Math.sqrt(_totalDistFromMean/generatedDataSampleSize);
+    console.log("stdev: " + myGenDataStDev);
+
+    let newTotal = 0;
+    for (let i = 0; i < generatedDataSampleSize; i++){
+        val = temp[i];
+        let newval = processRand(val);
+        newTotal += newval;
+        res.push(newval);
+    }
+
+    let postProcessedMean = newTotal/generatedDataSampleSize;
+
+    let _newTotalDistFromMean = 0;
+    for (let i = 0; i < generatedDataSampleSize; i++){
+        val = res[i];
+        _newTotalDistFromMean += Math.pow(val - postProcessedMean, 2);
+    }
+
+    let postProcessedStdev = Math.sqrt(_newTotalDistFromMean/generatedDataSampleSize);
+
+    console.log("Post processed:")
+    console.log("mean: " + postProcessedMean);
+    console.log("stdev: " + postProcessedStdev);
+
     return res;
 }
 
@@ -103,21 +142,21 @@ function reset(){
     if (normalOn){fitToNormal();}
 }
 
-function updateMean(){
-    let _mean = +distMeanInput.value;
-    if (_mean >0 && _mean < 6){
-        myMean = Math.round(_mean*4)/4;
-        reset();
-    }
-    else {
-        console.log('bad mean');
-    }
-}
+// function updateMean(){
+//     let _mean = +distMeanInput.value;
+//     if (_mean >0 && _mean < 6){
+//         myMean = _mean;
+//         reset();
+//     }
+//     else {
+//         console.log('bad mean');
+//     }
+// }
 
 function updateStdev(){
     let _stdev = +distStdevInput.value;
-    if (_stdev >0 && _stdev < 5){
-        myStdev = Math.round(_stdev*4)/4;
+    if (_stdev >0 && _stdev <= 1.5){
+        myStdev = _stdev;
         reset();
     }
     else {
@@ -129,6 +168,18 @@ function updateDistType(){
     let _distType = distTypeDropdownSelect.options[distTypeDropdownSelect.selectedIndex].value;
     if (_distType != ""){
         myDistType = _distType;
+        if (_distType == "normal"){
+            distStdevInput.max = 1.5;
+        }
+        else{
+            if (distStdevInput.value > 1){
+                distStdevInput.value = 1;
+                updateStdev();
+            }
+            distStdevInput.max = 1;
+
+        }
+        compareInput.step = 1/(numBarsPerUnit*thirdGraphMult);
         reset();
     }
     else {
@@ -158,28 +209,14 @@ $('.add-samples-10').on('click',function(){beginAddingSamples(10);});
 $('.add-samples-100').on('click',function(){beginAddingSamples(100);});
 
 function beginAddingSamples(n){
+    myNumSamples = n;
 
     // set proper gif using current state and # samples being added
-    let animTime = 0;
     let totalTime = 0;
     if (n == 1){
-        if (mySampleSize == 2){
-            totalTime = 1000;
-        }
-        else if (mySampleSize == 4){
-            totalTime = 1000;
-        }
-        else if (mySampleSize == 10){
-            totalTime = 2000;
-        }
-        else if (mySampleSize == 30){
-            totalTime = 6000;
-        }
-        else if (mySampleSize == 50){
-            totalTime = 10000;
-        }
+        totalTime = 300*mySampleSize;
     }
-    animTime = totalTime/(n*mySampleSize);
+    let animTime = totalTime/(n*mySampleSize);
     finishAddingSamples(n, animTime);
 }
 
@@ -208,8 +245,11 @@ function updateGraphWithManySamples(n){
     for (let j = 0; j < n; j++){
         let samples = [];
         for (let i = 0; i < mySampleSize; i++){
-            let rand = randomSkewNormal(Math.random, myMean*4, myStdev, skewMap[myDistType]);
-            let val = rand - myGenDataMeanVal + myMean*4;
+            let rand = -1;
+            while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
+                rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+            }
+            let val = processRand(rand);
             samples.push(val);
         }
         if (j == n - 1){
@@ -222,8 +262,11 @@ function updateGraphWithManySamples(n){
 function updateSampleGraphOneAtATime(animTime, sampleNum, initialDelay){
     let samples = [];
     for (let i = 0; i < mySampleSize; i++) {
-        let rand = randomSkewNormal(Math.random, myMean*4, myStdev, skewMap[myDistType]);
-        let val = rand - myGenDataMeanVal + myMean*4;
+        let rand = -1;
+        while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
+            rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+        }
+        let val = processRand(rand);
         delay((sampleNum*mySampleSize + i) * animTime + initialDelay).then(() => myBarGraphs.addSample(val));
         samples.push(val);
     }
@@ -247,7 +290,7 @@ $('.compareDropdown').on('change',function(){updateCompareType();});
 function updateCompareNormalVal(){
     let _comp = +compareInput.value;
     if (_comp >0 && _comp < 6){
-        myCompareNormalVal = Math.round(_comp*8)/8;
+        myCompareNormalVal = _comp;
         updateCompareResults();
         myBarGraphs.updateCompareLine();
         myBarGraphs.updateNormalCurve();
@@ -285,16 +328,15 @@ function fitToNormal(){
         compareResults.style.display = "none";
     }
 
-    if (normalParams2 != null){
-        normalParams2.style.display = "none";
+    normalParams2.innerText = "\\begin{align} \\bar{x} \\sim Norm ( \\mu_{\\bar{x}} = "+myMean+", \\sigma_{\\bar{x}} = \\frac{"+myStdev+"}{\\sqrt{"+mySampleSize+"}}) \\end{align}";
+    normalParams3.innerText = "\\begin{align} \\bar{x} \\sim Norm ( \\mu_{\\bar{x}} = "+myMean+", \\sigma_{\\bar{x}} = "+Math.round(1000*myStdev/Math.sqrt(mySampleSize))/1000+") \\end{align}";
+
+    if (window.MathJax) {
+        MathJax.typesetPromise([normalParamsDiv2]).then(() => {
+            MathJax.typesetPromise([normalParamsDiv3]).then(() => {});
+        });
     }
-    if (normalParams3 != null){
-        normalParams3.style.display = "none";
-    }
-    normalParams2 = document.getElementById("normalParams2_"+myMean+"_"+myStdev+"_"+mySampleSize);
-    normalParams2.style.display = "block";
-    normalParams3 = document.getElementById("normalParams3_"+myMean+"_"+myStdev+"_"+mySampleSize);
-    normalParams3.style.display = "block";
+
     myBarGraphs.toggleNormalCurveVisible();
 }
 
@@ -354,10 +396,65 @@ function randomNormals(rng){
 function randomSkewNormal(rng, mean, stdev, α = 0){
     const [u0, v] = randomNormals(rng);
     if (α === 0) {
-        return Math.round(mean + stdev * u0);
+        return mean*numBarsPerUnit + stdev*numBarsPerUnit * u0;
     }
+
     const delta = α / Math.sqrt(1 + α * α);
     const u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v;
     const z = u0 >= 0 ? u1 : -u1;
-    return Math.round(mean + stdev * z);
+
+    return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3275)*z;
+}
+
+function processRand(rand){
+
+    // if (_testCount < 10){
+    //     console.log("$$$$$$$$$")
+    //     console.log(Math.round(rand) - Math.round(myGenDataMeanVal));
+    //     console.log(Math.round(myStdev*numBarsPerUnit*(rand - myGenDataMeanVal)/myGenDataStDev));
+    //     // console.log(myGenDataMeanVal);
+    //     // console.log(myGenDataStDev);
+    // }
+    // _testCount++;
+
+    let res =  Math.round(rand - myGenDataMeanVal + myMean*numBarsPerUnit);
+    let u = Math.random();
+    if (myDistType == "normal"){
+        return res;
+    }
+    else if (myDistType == "left skew"){
+        if (u > 0.5){
+            return res - 1;
+        }
+        else{
+            return res
+        }
+    }
+    else{
+        if (u > 0.5){
+            return res + 1;
+        }
+        else{
+            return res
+        }
+    }
+
+
+    // if (myDistType == "normal"){
+    //     return Math.round((Math.round(rand) - Math.round(myGenDataMeanVal)) + myMean*numBarsPerUnit);
+    // }
+    // else{
+    //     return Math.round((Math.round(rand) - Math.round(myGenDataMeanVal)) + myMean*numBarsPerUnit);
+    // }
+
+    // if (myDistType == "normal"){
+    //     return Math.round(rand - Math.round(myGenDataMeanVal) + myMean*numBarsPerUnit);
+    // }
+    // else if (myDistType == "left skew"){
+    //     return Math.round((rand - Math.round(myGenDataMeanVal))*Math.sqrt((myStdev*numBarsPerUnit)/myGenDataStDev) + myMean*numBarsPerUnit);
+    // }
+    // else if (myDistType == "right skew"){
+    //     return Math.round((rand - Math.round(myGenDataMeanVal))*Math.sqrt((myStdev*numBarsPerUnit)/myGenDataStDev) + myMean*numBarsPerUnit);
+    // }
+
 }
