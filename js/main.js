@@ -29,9 +29,9 @@ let _testCount = 0;
 // numerical inputs
 // let distMeanInput = document.getElementById("nDays");
 let distStdevInput = document.getElementById("stdevDays");
+let distStdevLabel = document.getElementById("flexStdevLabel");
 let compareInput = document.getElementById("compareTo");
 
-// distMeanInput.step = 1/numBarsPerUnit;
 compareInput.step = 1/(numBarsPerUnit*thirdGraphMult);
 
 // text elements (change the text depending on the simulation run)
@@ -42,6 +42,7 @@ let normalParamsDiv2 = document.getElementById("normalParamsDiv2");
 let normalParamsDiv3 = document.getElementById("normalParamsDiv3");
 let normalCount = document.getElementById("normalCount");
 let pValue = document.getElementById("pValue");
+let fixedStdev = document.getElementById("fixedStdev");
 
 // dropdown input
 let distTypeDropdownSelect = document.getElementById('distDropdown');
@@ -51,6 +52,8 @@ let compareDropdownSelect = document.getElementById('compareDropdown');
 // div elements to turn on and off
 let compareControls = document.getElementById("compareControls");
 let compareResults = document.getElementById("compareResults");
+
+let blankImg = document.getElementById("blankImg");
 
 //////////////////////////////////////////////////////////////////
 // initialize source distribution data
@@ -169,15 +172,18 @@ function updateDistType(){
     if (_distType != ""){
         myDistType = _distType;
         if (_distType == "normal"){
+            distStdevInput.style.display = "block";
+            distStdevLabel.style.display = "block";
+            fixedStdev.style.display = "none";
             distStdevInput.max = 1.5;
+
         }
         else{
-            if (distStdevInput.value > 1){
-                distStdevInput.value = 1;
-                updateStdev();
-            }
-            distStdevInput.max = 1;
-
+            distStdevInput.style.display = "none";
+            distStdevLabel.style.display = "none";
+            fixedStdev.style.display = "block";
+            distStdevInput.value = 1;
+            updateStdev();
         }
         compareInput.step = 1/(numBarsPerUnit*thirdGraphMult);
         reset();
@@ -315,12 +321,14 @@ function updateCompareType(){
 function fitToNormal(){
     normalOn = !normalOn;
     if (normalOn){
+        blankImg.style.display = "none";
         normalParamsDiv1.style.display = "block";
         normalParamsDiv2.style.display = "block";
         normalParamsDiv3.style.display = "block";
         compareControls.style.display = "block";
     }
     else{
+        blankImg.style.display = "block";
         normalParamsDiv1.style.display = "none";
         normalParamsDiv2.style.display = "none";
         normalParamsDiv3.style.display = "none";
@@ -408,53 +416,27 @@ function randomSkewNormal(rng, mean, stdev, α = 0){
 
 function processRand(rand){
 
-    // if (_testCount < 10){
-    //     console.log("$$$$$$$$$")
-    //     console.log(Math.round(rand) - Math.round(myGenDataMeanVal));
-    //     console.log(Math.round(myStdev*numBarsPerUnit*(rand - myGenDataMeanVal)/myGenDataStDev));
-    //     // console.log(myGenDataMeanVal);
-    //     // console.log(myGenDataStDev);
-    // }
-    // _testCount++;
-
     let res =  Math.round(rand - myGenDataMeanVal + myMean*numBarsPerUnit);
-    let u = Math.random();
     if (myDistType == "normal"){
         return res;
     }
-    else if (myDistType == "left skew"){
-        if (u > 0.5){
-            return res - 1;
-        }
-        else{
-            return res
-        }
-    }
     else{
-        if (u > 0.5){
-            return res + 1;
+        let u = Math.random();
+        if (myDistType == "left skew"){
+            if (u > 0.4){
+                return res - 1;
+            }
+            else{
+                return res
+            }
         }
         else{
-            return res
+            if (u > 0.4){
+                return res + 1;
+            }
+            else{
+                return res
+            }
         }
     }
-
-
-    // if (myDistType == "normal"){
-    //     return Math.round((Math.round(rand) - Math.round(myGenDataMeanVal)) + myMean*numBarsPerUnit);
-    // }
-    // else{
-    //     return Math.round((Math.round(rand) - Math.round(myGenDataMeanVal)) + myMean*numBarsPerUnit);
-    // }
-
-    // if (myDistType == "normal"){
-    //     return Math.round(rand - Math.round(myGenDataMeanVal) + myMean*numBarsPerUnit);
-    // }
-    // else if (myDistType == "left skew"){
-    //     return Math.round((rand - Math.round(myGenDataMeanVal))*Math.sqrt((myStdev*numBarsPerUnit)/myGenDataStDev) + myMean*numBarsPerUnit);
-    // }
-    // else if (myDistType == "right skew"){
-    //     return Math.round((rand - Math.round(myGenDataMeanVal))*Math.sqrt((myStdev*numBarsPerUnit)/myGenDataStDev) + myMean*numBarsPerUnit);
-    // }
-
 }
