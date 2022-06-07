@@ -141,7 +141,7 @@
                                                 </select>
                                             </div>
                                             <div class="row d-flex justify-content-center">
-                                                <label for="sampleSizeDropdown">Choose a sample size:</label>
+                                                <label for="sampleSizeDropdown">Choose a sample size (n):</label>
                                                 <select class="sampleSizeDropdown" id="sampleSizeDropdown">
                                                     <option value="2">2</option>
                                                     <option value="4">4</option>
@@ -167,7 +167,7 @@
 
                                     <div class="row d-flex justify-content-center">
                                         <!--                                    BUTTONS-->
-                                        <div id="normalButtons" class="row" style="display: block">
+                                        <div id="normalButtons" class="row" style="display: none">
                                             <div class="row" style="display: block; text-align:center">
                                                 <div class="buttons">
                                                     <button class="fit-to-normal">Fit to Normal</button>
@@ -208,7 +208,7 @@
                                         </div>
                                     </div>
 
-                                    <div id="compareControls" style="display:none;">
+                                    <div id="compareControls" style="display:block;">
                                         <div class="row d-flex justify-content-center" style="display: none; border: thin solid grey; border-radius: 5px; background-color: #dcdcdc">
                                             <label for="compareTo">Number of sample means</label>
                                             <select class="compareDropdown" id="compareDropdown">

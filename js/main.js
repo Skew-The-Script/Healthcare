@@ -14,11 +14,12 @@ let data1;
 
 let myBarGraphs;
 let normalOn = false;
+let compareOn = false;
 let normalCounted = false;
 let skewMap = {
     'normal' : 0,
-    'left skew' : -4,
-    'right skew' : 4
+    'left skew' : -300,
+    'right skew' : 300
 };
 
 let _testCount = 0;
@@ -54,6 +55,8 @@ let compareControls = document.getElementById("compareControls");
 let compareResults = document.getElementById("compareResults");
 
 let blankImg = document.getElementById("blankImg");
+
+let normalButton = document.getElementById("normalButtons");
 
 //////////////////////////////////////////////////////////////////
 // initialize source distribution data
@@ -143,6 +146,8 @@ function reset(){
     myBarGraphs.resetSampleGraph();
     myBarGraphs.resetSampleMeanGraph();
     if (normalOn){fitToNormal();}
+    normalCount.innerText = "";
+    pValue.innerText = "";
 }
 
 // function updateMean(){
@@ -200,6 +205,15 @@ function updateSampleSize(){
         myBarGraphs.resetSampleGraph();
         myBarGraphs.resetSampleMeanGraph();
         if (normalOn){fitToNormal();}
+
+        if (_sampleSize < 30){
+            normalButton.style.display = "none";
+        }
+        else{
+            normalButton.style.display = "block";
+        }
+        normalCount.innerText = "";
+        pValue.innerText = "";
     }
     else {
         console.log('bad sample size');
@@ -325,15 +339,15 @@ function fitToNormal(){
         normalParamsDiv1.style.display = "block";
         normalParamsDiv2.style.display = "block";
         normalParamsDiv3.style.display = "block";
-        compareControls.style.display = "block";
+        // compareControls.style.display = "block";
     }
     else{
         blankImg.style.display = "block";
         normalParamsDiv1.style.display = "none";
         normalParamsDiv2.style.display = "none";
         normalParamsDiv3.style.display = "none";
-        compareControls.style.display = "none";
-        compareResults.style.display = "none";
+        // compareControls.style.display = "none";
+        // compareResults.style.display = "none";
     }
 
     normalParams2.innerText = "\\begin{align} \\bar{x} \\sim Norm ( \\mu_{\\bar{x}} = "+myMean+", \\sigma_{\\bar{x}} = \\frac{"+myStdev+"}{\\sqrt{"+mySampleSize+"}}) \\end{align}";
@@ -353,6 +367,7 @@ function countNormal(){
     normalCounted = !normalCounted;
     if (normalCounted){
         compareResults.style.display = "block";
+        myBarGraphs.wrangleData();
         updateCompareResults();
     }
     else{
@@ -376,8 +391,14 @@ function displayNormalCount(normCount){
 }
 
 function displayPValue(pVal){
-    let _val = Math.round(1000*pVal)/1000;
-    pValue.innerText = "p-value = " + _val;
+    if (mySampleSize < 30){
+        pValue.innerText = ""
+    }
+    else{
+        let _val = Math.round(1000*pVal)/1000;
+        pValue.innerText = "p-value = " + _val;
+    }
+
 }
 
 
@@ -410,20 +431,21 @@ function randomSkewNormal(rng, mean, stdev, α = 0){
     const delta = α / Math.sqrt(1 + α * α);
     const u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v;
     const z = u0 >= 0 ? u1 : -u1;
-
-    return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3275)*z;
+    // return mean*numBarsPerUnit + stdev*numBarsPerUnit*z;
+    return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3505)*z;
 }
 
 function processRand(rand){
 
     let res =  Math.round(rand - myGenDataMeanVal + myMean*numBarsPerUnit);
+    // return res;
     if (myDistType == "normal"){
         return res;
     }
     else{
         let u = Math.random();
         if (myDistType == "left skew"){
-            if (u > 0.4){
+            if (u > 0.3){
                 return res - 1;
             }
             else{
@@ -431,7 +453,7 @@ function processRand(rand){
             }
         }
         else{
-            if (u > 0.4){
+            if (u > 0.3){
                 return res + 1;
             }
             else{

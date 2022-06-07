@@ -641,7 +641,7 @@ class BarVis {
 
         ////////////////////////////
         // place vertical line showing compared value
-        if (normalOn){
+        if (normalCounted){
             vis.svg.append("line")
                 .attr("id", "compareLine")
                 .attr("x1", xval)
