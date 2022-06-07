@@ -14,12 +14,11 @@ let data1;
 
 let myBarGraphs;
 let normalOn = false;
-let compareOn = false;
 let normalCounted = false;
 let skewMap = {
     'normal' : 0,
-    'left skew' : -300,
-    'right skew' : 300
+    'left skew' : -6,
+    'right skew' : 6
 };
 
 let _testCount = 0;
@@ -122,15 +121,15 @@ myBarGraphs = new BarVis('barGraphs', data1, myMean, myStdev, myDistType);
 ////////////////////////////////////////////////////////////////
 // start button
 $('.start-button').on('click',function(){start();});
-$('.back-button').on('click',function(){back();});
+// $('.back-button').on('click',function(){back();});
 
 function start(){
     fullpage_api.moveSectionDown();
 }
 
-function back(){
-    fullpage_api.moveSectionUp();
-}
+// function back(){
+//     fullpage_api.moveSectionUp();
+// }
 
 
 ////////////////////////////////////////////////////////////////
@@ -432,33 +431,39 @@ function randomSkewNormal(rng, mean, stdev, α = 0){
     const u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v;
     const z = u0 >= 0 ? u1 : -u1;
     // return mean*numBarsPerUnit + stdev*numBarsPerUnit*z;
-    return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3505)*z;
+    return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3625)*z;
 }
 
-function processRand(rand){
+function processRand(rand) {
 
-    let res =  Math.round(rand - myGenDataMeanVal + myMean*numBarsPerUnit);
-    // return res;
-    if (myDistType == "normal"){
+    let res = Math.round(rand - myGenDataMeanVal + myMean * numBarsPerUnit);
+    if (myDistType == "normal") {
         return res;
-    }
-    else{
-        let u = Math.random();
-        if (myDistType == "left skew"){
-            if (u > 0.3){
+    } else {
+        if (mySampleSize < 30) {
+            if (myDistType == "left skew") {
                 return res - 1;
-            }
-            else{
-                return res
-            }
-        }
-        else{
-            if (u > 0.3){
+            } else {
                 return res + 1;
             }
-            else{
-                return res
+        }
+        else {
+            let u = Math.random();
+            let comp = 0.6
+            if (myDistType == "left skew") {
+                if (u < comp) {
+                    return res - 1;
+                } else {
+                    return res;
+                }
+            } else {
+                if (u < comp) {
+                    return res + 1;
+                } else {
+                    return res;
+                }
             }
         }
     }
 }
+
