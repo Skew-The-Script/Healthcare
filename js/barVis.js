@@ -453,6 +453,7 @@ class BarVis {
                 xsMeans.exit().remove();
             }
             else{
+
                 xsMeansOld.enter().append("text")
                     .attr("class", "sampleMeanOld")
                     .merge(xsMeansOld)
@@ -513,6 +514,8 @@ class BarVis {
             vis.svg.selectAll(".sampleMeanNew").remove();
         }
         else if (vis.nSampleMeansSoFar >= 1){
+            vis.svg.selectAll(".sampleMeanOld").remove();
+            vis.svg.selectAll(".sampleMeanNew").remove();
             xsMeans.enter().append("text")
                 .attr("class", "sampleMeanAll")
                 .merge(xsMeans)
