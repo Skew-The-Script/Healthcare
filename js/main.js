@@ -1,4 +1,5 @@
 
+
 let myMean = 3;
 let myStdev = 1;
 let myDistType = 'normal';
@@ -11,6 +12,7 @@ let myCompareType = "greater than";
 let numBarsPerUnit = 4;
 
 let data1;
+let generatedDataSampleSize = 100000;
 
 let myBarGraphs;
 let normalOn = false;
@@ -65,13 +67,14 @@ function genData(){
     _testCount = 0;
     let res = [];
     let temp = [];
-    let generatedDataSampleSize = 100000;
     let val = 0;
     let total = 0;
 
     // generate 10000 random samples
     for (let i = 0; i < generatedDataSampleSize; i++){
         val = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+        // val = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+        // val = getRand();
         total += val;
         temp.push(val);
     }
@@ -145,6 +148,12 @@ function reset(){
     myBarGraphs.resetSampleGraph();
     myBarGraphs.resetSampleMeanGraph();
     if (normalOn){fitToNormal();}
+    if (mySampleSize < 30 && myDistType != "normal"){
+        normalButton.style.display = "none";
+    }
+    else{
+        normalButton.style.display = "block";
+    }
     normalCount.innerText = "";
     pValue.innerText = "";
 }
@@ -205,7 +214,7 @@ function updateSampleSize(){
         myBarGraphs.resetSampleMeanGraph();
         if (normalOn){fitToNormal();}
 
-        if (_sampleSize < 30){
+        if (_sampleSize < 30 && myDistType != "normal"){
             normalButton.style.display = "none";
         }
         else{
@@ -264,11 +273,15 @@ function updateGraphWithManySamples(n){
     for (let j = 0; j < n; j++){
         let samples = [];
         for (let i = 0; i < mySampleSize; i++){
-            let rand = -1;
-            while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
-                rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
-            }
-            let val = processRand(rand);
+
+            let _i = Math.round(Math.random()*generatedDataSampleSize);
+            let val = data1[_i]; // get random sample from stored data
+
+            // let rand = -1;
+            // while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
+            //     rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+            // }
+            // let val = processRand(rand);
             samples.push(val);
         }
         if (j == n - 1){
@@ -281,11 +294,16 @@ function updateGraphWithManySamples(n){
 function updateSampleGraphOneAtATime(animTime, sampleNum, initialDelay){
     let samples = [];
     for (let i = 0; i < mySampleSize; i++) {
-        let rand = -1;
-        while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
-            rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
-        }
-        let val = processRand(rand);
+
+        let _i = Math.round(Math.random()*generatedDataSampleSize);
+        let val = data1[_i]; // get random sample from stored data
+
+
+        // let rand = -1;
+        // while (!((rand > 0) && (rand < 6*numBarsPerUnit))){
+        //     rand = randomSkewNormal(Math.random, myMean, myStdev, skewMap[myDistType]);
+        // }
+        // let val = processRand(rand);
         delay((sampleNum*mySampleSize + i) * animTime + initialDelay).then(() => myBarGraphs.addSample(val));
         samples.push(val);
     }
@@ -408,19 +426,34 @@ function delay(time) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
 
+
+
+// function randomBeta(){
+//     if (myDistType == "left skew"){
+//         console.log();
+//         return window.jStat.betafn( 4.65, 2.15 );
+//     }
+//     else if (myDistType == "right skew"){
+//         return window.jStat.betafn( 2.15, 4.65 );
+//     }
+//     else{
+//         return -1;
+//     }
+// }
+
 // random number generator algorithm source:
 // https://spin.atomicobject.com/2019/09/30/skew-normal-prng-javascript/
 
-function randomNormals(rng){
+function randomNormals(){
     let u1 = 0, u2 = 0;
     //Convert [0,1) to (0,1)
-    while (u1 === 0) u1 = rng();
-    while (u2 === 0) u2 = rng();
+    while (u1 === 0) u1 = Math.random();
+    while (u2 === 0) u2 = Math.random();
     const R = Math.sqrt(-2.0 * Math.log(u1));
     const theta = 2.0 * Math.PI * u2;
     return [R * Math.cos(theta), R * Math.sin(theta)];
 }
-
+//
 function randomSkewNormal(rng, mean, stdev, α = 0){
     const [u0, v] = randomNormals(rng);
     if (α === 0) {
@@ -434,36 +467,61 @@ function randomSkewNormal(rng, mean, stdev, α = 0){
     return mean*numBarsPerUnit + stdev*Math.pow(numBarsPerUnit, 1.3625)*z;
 }
 
+
 function processRand(rand) {
 
     let res = Math.round(rand - myGenDataMeanVal + myMean * numBarsPerUnit);
-    if (myDistType == "normal") {
-        return res;
-    } else {
-        if (mySampleSize < 30) {
-            if (myDistType == "left skew") {
-                return res - 1;
-            } else {
-                return res + 1;
-            }
-        }
-        else {
-            let u = Math.random();
-            let comp = 0.6
-            if (myDistType == "left skew") {
-                if (u < comp) {
-                    return res - 1;
-                } else {
-                    return res;
-                }
-            } else {
-                if (u < comp) {
-                    return res + 1;
-                } else {
-                    return res;
-                }
-            }
-        }
-    }
+    return res;
+    //
+    // if (myDistType == "normal") {
+    //     return res;
+    // } else {
+    //     if (mySampleSize < 30) {
+    //         if (myDistType == "left skew") {
+    //             return res - 1;
+    //         } else {
+    //             return res + 1;
+    //         }
+    //     }
+    //     else {
+    //         let u = Math.random();
+    //         let comp = 0.6
+    //         if (myDistType == "left skew") {
+    //             if (u < comp) {
+    //                 return res - 1;
+    //             } else {
+    //                 return res;
+    //             }
+    //         } else {
+    //             if (u < comp) {
+    //                 return res + 1;
+    //             } else {
+    //                 return res;
+    //             }
+    //         }
+    //     }
+    // }
 }
-
+//
+// function processBeta(betaVal){
+//     return Math.round(24*betaVal);
+// }
+//
+// function getRand(){
+//     if (myDistType == "normal"){
+//         const [u0, v] = randomNormals();
+//         return  myMean*numBarsPerUnit + myStdev*numBarsPerUnit * u0;
+//     }
+//     else{
+//         return randomBeta();
+//     }
+// }
+//
+// function processRand(rand){
+//     if (myDistType == "normal"){
+//         return Math.round(rand - myGenDataMeanVal + myMean * numBarsPerUnit);
+//     }
+//     else{
+//         return Math.round(24*rand);
+//     }
+// }
